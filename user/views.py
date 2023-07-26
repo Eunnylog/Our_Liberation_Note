@@ -23,29 +23,27 @@ from user.serializers import (GroupCreateSerializer, GroupSerializer,
                               UserUpdateSerializer, UserViewSerializer)
 
 from .validators import check_password, validate_email
+from user.tasks import send_email_task
+import time
 
 
 # 이메일 전송
 class SendEmail(APIView):
     def post(self, request):
+
         subject = "[우리들의 해방일지] 인증 코드를 확인해주세요!"
         user_email = request.data.get("email")
 
-        if not validate_email(user_email):
+        random_code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        body = f"이메일 확인 코드: {random_code}"
+        
+        # 이메일 전송 비동기 처리
+        sent_email = send_email_task.delay(user_email, subject, body)
+        
+        if not sent_email:
             return Response(
                 {"message": "잘못된 이메일 주소입니다!"}, status=status.HTTP_400_BAD_REQUEST
             )
-
-        random_code = "".join(
-            random.choices(string.ascii_uppercase + string.digits, k=6)
-        )  # 6자리 랜덤 문자열 생성
-        body = f"이메일 확인 코드: {random_code}"  # 랜덤 코드 본문에 추가
-        email = EmailMessage(
-            subject,
-            body,
-            to=[user_email],
-        )
-        email.send()
 
         # 인증 코드 DB에 저장
         code = CheckEmail.objects.create(code=random_code, email=user_email)
@@ -54,6 +52,7 @@ class SendEmail(APIView):
             {"message": "이메일을 전송했습니다. 메일함을 확인하세요.", "code": code.id},
             status=status.HTTP_200_OK,
         )
+
 
 
 # 회원 가입
@@ -87,7 +86,6 @@ class SignupView(APIView):
 
         # 인증 코드 유효 기간이 지난 경우
         if code_obj.expires_at < datetime.now():
-            code_obj.delete()
             return Response(
                 {"message": "인증 코드 유효 기간이 지났습니다."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -118,7 +116,8 @@ class SignupView(APIView):
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            code_obj.delete()  # 이메일 확인 코드 삭제
+            code_obj.is_verified = True  # 인증 상태 변경
+            code_obj.save()
 
             # 그룹 이름
             group_name = email.split("@")[0]
@@ -264,8 +263,9 @@ class ChangePassword(APIView):
         user.set_password(new_password)
         user.save()
 
-        # 인증코드 삭제
-        code_obj.delete()
+        # 인증 상태 변경
+        code_obj.is_verified = True  
+        code_obj.save()
         return Response({"message": "비밀번호 변경 완료!"}, status=status.HTTP_200_OK)
 
 

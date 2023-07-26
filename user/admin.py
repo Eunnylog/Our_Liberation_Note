@@ -110,8 +110,8 @@ class UserGroupAdmin(admin.ModelAdmin):
 class CheckEmailGroupAdmin(admin.ModelAdmin):
     ordering = ("id",)
     list_display_links = ("id",)
-    list_display = ("id", "email", "code", "created_at", "expires_at")
-
+    list_display = ("id", "email", "code", "created_at", "expires_at", "is_verified")
+    list_filter = ("is_verified",)
 
 admin.site.register(User, UserAdmin)
 admin.site.register(UserGroup, UserGroupAdmin)

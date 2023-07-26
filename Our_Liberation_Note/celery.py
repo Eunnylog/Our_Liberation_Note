@@ -14,8 +14,8 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Our_Liberation_Note.settings")
 
 
-CELERY_BROKER = "redis://redis:6379/0"
-CELERY_BACKEND = "redis://redis:6379/0"
+CELERY_BROKER = "redis://localhost:6379"
+CELERY_BACKEND = "redis://localhost:6379"
 app = Celery("Our_Liberation_Note")
 
 # Django 설정 파일에 있는 설정을 사용하도록 한다.
@@ -26,11 +26,3 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 app.conf.broker_connection_retry_on_startup = True
-
-
-app.conf.beat_schedule = {
-    "delete_expired_emails": {
-        "task": "user.tasks.delete_expired_emails",
-        "schedule": crontab(minute="*/15"),  # 15분마다 실행
-    },
-}

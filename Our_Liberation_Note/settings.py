@@ -10,71 +10,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DEBUG=(bool, True))
 
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+environ.Env.read_env(
+    env_file=os.path.join(BASE_DIR, '.env')
+)
 
 SECRET_KEY = env("SECRET_KEY")
 
 
-DEBUG = False
+DEBUG = env('DEBUG')
 
 
-ALLOWED_HOSTS = [
-    "3.34.136.157",
-    "ec2-3-34-136-157.ap-northeast-2.compute.amazonaws.com",
-    "13.125.228.167",
-    "ec2-54-180-24-79.ap-northeast-2.compute.amazonaws.com",
-    "liberation-note.com",
-    "api.liberation-note.com",
-]
-
-CORS_ALLOW_ALL_ORIGINS = False  # 모든 도메인에서 오는 요청을 허용하지 않음
-CORS_ALLOWED_ORIGINS = [
-    "https://liberation-note.com",
-    "http://liberation-note.com",
-    "http://127.0.0.1:5500",
-]
-
-#  s3 설정
-if not DEBUG:
-    # aws settings
-    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
-    AWS_S3_SIGNATURE_NAME = ("s3v4",)
-    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME")
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = None
-    AWS_S3_VERITY = True
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-    AWS_S3_CUSTOM_DOMAIN = (
-        f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
-    )
-    STATIC_LOCATION = "static"
-    STATIC_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{STATIC_LOCATION}/"
-    PUBLIC_MEDIA_LOCATION = "media"
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{PUBLIC_MEDIA_LOCATION}/"
-else:
-    STATIC_URL = "/staticfiles/"
-    STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-    MEDIA_URL = "/mediafiles/"
-    MEDIA_ROOT = os.path.join(BASE_DIR, "mediafiles")
-
-    STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),)
-
-
-CORS_ALLOW_HEADERS = [
-    "accept",
-    "accept-encoding",
-    "authorization",
-    "authorization-token",  # 'authorization-token' 헤더 추가
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-]
-
+ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -139,7 +85,7 @@ DATABASES = mysettings.DATABASES
 # 이미지 삽입
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760
-# MEDIA_URL = "/media/"
+MEDIA_URL = "/media/"
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -214,18 +160,18 @@ AUTH_USER_MODEL = "user.User"
 
 
 # Email
-EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND")
-EMAIL_HOST = os.environ.get("EMAIL_HOST")  # 메일 호스트 서버
-EMAIL_PORT = os.environ.get("EMAIL_PORT")  # gmail과 통신하는 포트
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")  # 발신할 이메일
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")  # 발신할 메일의 비밀번호
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS")  # TLS 보안 방법
+EMAIL_BACKEND = env("EMAIL_BACKEND")
+EMAIL_HOST = env("EMAIL_HOST", default="smtp.gmail.com")  # 메일 호스트 서버
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)  # gmail과 통신하는 포트
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")  # 발신할 이메일
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")  # 발신할 메일의 비밀번호
+EMAIL_USE_TLS = env("EMAIL_USE_TLS")  # TLS 보안 방법
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ACCOUNT_EMAIL_REQUIRED = True  # 이메일 필드가 회원가입 시 필수 필드로 지정
 
 # django celery beat
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379")
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "localhost://redis:6379")
 CELERY_ACCEPT_CONTENT = ["application/json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
