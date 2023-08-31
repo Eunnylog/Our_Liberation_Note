@@ -1,27 +1,67 @@
+from datetime import datetime as dt
+
 from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from user.models import User, UserGroup
+from user.models import User, UserGroup, CheckEmail
 
-from .validators import check_words
-
+from user.validators import (
+    check_words,
+    check_password, 
+    validate_email,
+)
 
 class SignUpSerializer(serializers.ModelSerializer):
-    join_date = serializers.SerializerMethodField()
-
-    def get_join_date(self, obj):
-        return obj.join_date.strftime("%Y년 %m월 %d일 %p %I:%M")
-
+    code = serializers.CharField(write_only=True)
+    repassword = serializers.CharField(write_only=True)
+    
     class Meta:
         model = User
         fields = "__all__"
 
+    def validate(self, data):       
+        email = data.get("email")        
+        code = data.get("code")
+        password = data.get("password")
+        repassword = data.get("repassword")
+            
+        email_code_obj = (CheckEmail.objects.filter(email=email).last())
+        
+        if not email_code_obj:
+            raise ValidationError({"message": "해당 메일로 보낸 인증 코드가 없습니다."})
+              
+        if email_code_obj.code != code:
+            raise ValidationError({"message": "인증 코드가 유효하지 않습니다."})
+
+        if email_code_obj.expired_at < dt.now():
+            raise ValidationError({"message": "인증 코드 유효 기간이 지났습니다."})
+
+        if check_password(password):
+            raise ValidationError({"message": "8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!"})
+        
+        if password != repassword:
+            raise ValidationError({"message": "비밀번호와 비밀번호 확인이 일치하지 않습니다."})
+        
+        email_code_obj.update_is_verified()
+
+        return data
+
     def create(self, validated_data):
-        user = super().create(validated_data)
-        password = user.password
-        user.set_password(password)
+        email = validated_data["email"]
+        password = validated_data["password"]
+        user = User(
+            email=email,
+            password=password,
+        )
+        user.set_password(validated_data["password"])
         user.save()
+
+        user_group_name = email.split("@")[0]
+        new_user = User.objects.get(email=email)
+        new_group = UserGroup(name=user_group_name, master=new_user)
+        new_group.save()
+        new_group.members.add(new_user)
         return user
 
 

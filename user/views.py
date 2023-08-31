@@ -1,153 +1,89 @@
+# python
 import os
 import random
 import string
-from datetime import datetime
-
+from datetime import datetime as dt
 import requests
+import time
+
+
+# django
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import EmailMessage
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+
+# rest_framework
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
+from rest_framework.exceptions import APIException
 from rest_framework.views import APIView
+
+# rest_framework_simplejwt
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+# internal apps
 from diary.models import Comment, Note, PhotoPage, PlanPage, Stamp
 from diary.serializers import MarkerSerializer
 from user.models import CheckEmail, User, UserGroup
-from user.serializers import (GroupCreateSerializer, GroupSerializer,
-                              LoginSerializer, SignUpSerializer,
-                              UserUpdateSerializer, UserViewSerializer)
+from user.serializers import (
+    GroupCreateSerializer, 
+    GroupSerializer,
+    LoginSerializer, 
+    SignUpSerializer,
+    UserUpdateSerializer, 
+    UserViewSerializer
+)
+from user.validators import (
+    check_password, 
+    validate_email,
+)
+  
 
-from .validators import check_password, validate_email
-from user.tasks import send_email_task
-import time
-
-
-# 이메일 전송
-class SendEmail(APIView):
+class SignUpAPI(APIView):
     def post(self, request):
-
-        subject = "[우리들의 해방일지] 인증 코드를 확인해주세요!"
-        user_email = request.data.get("email")
-
-        random_code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        body = f"이메일 확인 코드: {random_code}"
-        
-        # 이메일 전송 비동기 처리
-        sent_email = send_email_task.delay(user_email, subject, body)
-        
-        if not sent_email:
-            return Response(
-                {"message": "잘못된 이메일 주소입니다!"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # 인증 코드 DB에 저장
-        code = CheckEmail.objects.create(code=random_code, email=user_email)
-
-        return Response(
-            {"message": "이메일을 전송했습니다. 메일함을 확인하세요.", "code": code.id},
-            status=status.HTTP_200_OK,
-        )
-
-
-
-# 회원 가입
-class SignupView(APIView):
-    def post(self, request):
-        email = request.data.get("email")
-        code = request.data.get("code")
-        password = request.data.get("password")
-        password2 = request.data.get("password2")
-
-        # 이메일 중복 확인
-        try:
-            user = User.objects.get(email=email)
-            return Response(
-                {"message": "이메일이 이미 존재합니다."}, status=status.HTTP_400_BAD_REQUEST
-            )
-        except ObjectDoesNotExist:
-            pass
-
-        # 가장 최근인 인증코드 인스턴스
-        code_obj = (
-            CheckEmail.objects.filter(email=email).order_by("-created_at").first()
-        )
-
-        # 인증코드가 없는 경우
-        if code_obj is None:
-            return Response(
-                {"message": "해당 메일로 보낸 인증 코드가 없습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 인증 코드 유효 기간이 지난 경우
-        if code_obj.expires_at < datetime.now():
-            return Response(
-                {"message": "인증 코드 유효 기간이 지났습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 인증 코드가 일치하지 않을 경우
-        if code_obj.code != code:
-            return Response(
-                {"message": "인증 코드가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # 새 비밀번호 유효성 검사
-        try:
-            check_password(password)
-        except ValidationError:
-            return Response(
-                {"message": "8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 비밀번호와 비밀번호 확인 일치 여부 확인
-        if password != password2:
-            return Response(
-                {"message": "비밀번호와 비밀번호 확인이 일치하지 않습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            code_obj.is_verified = True  # 인증 상태 변경
-            code_obj.save()
-
-            # 그룹 이름
-            group_name = email.split("@")[0]
-
-            # 회원가입시 개인 그룹 생성
-            new_user = User.objects.get(email=email)
-            new_group = UserGroup(name=group_name, master=new_user)
-            new_group.save()
-            new_group.members.add(new_user)
-            return Response({"message": "가입완료!"}, status=status.HTTP_201_CREATED)
-        else:
-            return Response(
-                {"message": f"{serializer.errors}"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            context = {
+                "message":"가입 완료!",
+                "user": serializer.data,
+            }
+            return Response(context, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# 로그인
-class LoginView(TokenObtainPairView):
+class SignInAPI(TokenObtainPairView):
     serializer_class = LoginSerializer
 
 
-# 유저 정보
+class SendEmailAPI(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        if validate_email(email):
+            raise APIException("잘못된 이메일입니다.")
+
+        code = CheckEmail.objects.create(email=email)
+        code.send_email()
+        context = {
+            "message": "이메일을 전송했습니다. 메일함을 확인하세요.",
+            "code": code.id
+        }
+        return Response(context, status=status.HTTP_200_OK)
+
+
+
 class UserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    # 회원 정보 보기
     def get(self, request):
-        return Response(UserViewSerializer(request.user).data)
+        context = {
+            "user": UserViewSerializer(request.user).data
+        }
+        return Response(context, status=status.HTTP_200_OK)
 
-    # 회원 정보 수정
     def patch(self, request):
         current_password = request.data.get("check_password")
         user = User.objects.get(email=request.user)
@@ -229,7 +165,7 @@ class ChangePassword(APIView):
             )
 
         # 유효 기간 확인
-        if code_obj.expires_at < datetime.now():
+        if code_obj.expired_at < dt.now():
             # 인증 코드 유효 기간이 지난 경우
             code_obj.delete()
             return Response(
@@ -273,16 +209,13 @@ class GroupView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        groups = UserGroup.objects.filter(members=request.user, status="0").order_by(
-            "-created_at"
-        )
+        groups = UserGroup.objects.filter(members=request.user, status="0").order_by("-created_at")
         serializer = GroupSerializer(groups, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     # 그룹 만들기
     def post(self, request):
         serializer = GroupCreateSerializer(data=request.data)
-
         if serializer.is_valid():
             group_name = serializer.validated_data.get("name")
 
