@@ -113,23 +113,14 @@ class GroupView(APIView):
 
     def get(self, request):
         groups = UserGroup.objects.filter(members=request.user, status="0").order_by("-created_at")
-        serializer = GroupSerializer(groups, many=True)
+        serializer = GroupSerializer(groups, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     # 그룹 만들기
     def post(self, request):
-        serializer = GroupCreateSerializer(data=request.data)
+        serializer = GroupCreateSerializer(data=request.data, context={"request":request})
         if serializer.is_valid():
-            group_name = serializer.validated_data.get("name")
-
-            # 이미 같은 이름의 그룹이 있는지 확인
-            if UserGroup.objects.filter(name=group_name).exists():
-                error_message = {"error": "이미 같은 이름의 그룹이 존재합니다."}
-                return Response(error_message, status=status.HTTP_400_BAD_REQUEST)
-            # 그룹 생성하면서 그룹장을 request.user로 설정
-            group = serializer.save(master_id=request.user.id)
-            # master를 멤버로 추가하기
-            group.members.add(request.user)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -214,16 +214,30 @@ class GroupCreateSerializer(serializers.ModelSerializer):
         fields = ("name", "members", "master", "status")
         read_only_fields = ("master",)
 
-    def validate(self, attrs):
-        if check_words(attrs["name"]):
+    def validate(self, data):
+        if check_words(data["name"]):
             raise ValidationError("비속어 사용이 불가합니다!")
 
-        name = attrs["name"]
+        name = data["name"]
+        
         if len(name) < 2 or len(name) > 15:
             raise ValidationError("제한 글자수는 2~15자 입니다!")
 
-        return attrs
+        if UserGroup.objects.filter(name=name).exists():
+            raise serializers.ValidationError("이미 같은 이름의 그룹이 존재합니다.")
+        
+        return data
 
+    def create(self, validated_data):
+        master = self.context["request"].user
+        
+        validated_data['master'] = master
+        group = super().create(validated_data)
+        
+        
+        group.members.add(master)
+        
+        return group
 
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
