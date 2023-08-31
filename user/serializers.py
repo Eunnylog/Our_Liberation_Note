@@ -8,7 +8,7 @@ from user.models import User, UserGroup, CheckEmail
 
 from user.validators import (
     check_words,
-    check_password, 
+    validate_password, 
     validate_email,
 )
 
@@ -29,19 +29,19 @@ class SignUpSerializer(serializers.ModelSerializer):
         email_code_obj = (CheckEmail.objects.filter(email=email).last())
         
         if not email_code_obj:
-            raise ValidationError({"message": "해당 메일로 보낸 인증 코드가 없습니다."})
+            raise serializers.ValidationError("해당 메일로 보낸 인증 코드가 없습니다.")
               
         if email_code_obj.code != code:
-            raise ValidationError({"message": "인증 코드가 유효하지 않습니다."})
+            raise serializers.ValidationError("인증 코드가 유효하지 않습니다.")
 
         if email_code_obj.expired_at < dt.now():
-            raise ValidationError({"message": "인증 코드 유효 기간이 지났습니다."})
+            raise serializers.ValidationError("인증 코드 유효 기간이 지났습니다.")
 
-        if check_password(password):
-            raise ValidationError({"message": "8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!"})
+        if validate_password(password):
+            raise serializers.ValidationError("8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!")
         
         if password != repassword:
-            raise ValidationError({"message": "비밀번호와 비밀번호 확인이 일치하지 않습니다."})
+            raise serializers.ValidationError("비밀번호와 비밀번호 확인이 일치하지 않습니다.")
         
         email_code_obj.update_is_verified()
 
@@ -87,16 +87,34 @@ class UserViewSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    check_new_password = serializers.CharField(write_only=True)
+    
     class Meta:
         model = User
-        fields = ("password", "email")
+        fields = ("current_password", "new_password", "check_new_password", "email")
+        
+    def validate(self, data):
+        if data["new_password"] == "" or data["current_password"] == "" or data["check_new_password"] == "":
+            raise serializers.ValidationError("빈칸을 입력해주세요.")
+        
+        if data["new_password"] != data["check_new_password"]:
+            raise serializers.ValidationError("새로운 비밀번호가 일치하지 않습니다.")
+        
+        user = self.context.get('request').user
+        if not user.check_password(data['current_password']):
+            raise serializers.ValidationError("비밀번호가 일치하지 않습니다.")
 
+        try:
+            validate_password(data['new_password'])
+        except ValidationError:
+            raise serializers.ValidationError("8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!")
+        
+        return data
+    
     def update(self, instance, validated_data):
-        # 새로운 비밀번호로 설정
-        password = validated_data.get("new_password")
-        if password:
-            instance.set_password(password)
-
+        instance.set_password(validated_data["new_password"])
         instance.save()
         return instance
 

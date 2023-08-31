@@ -37,7 +37,7 @@ from user.serializers import (
     UserViewSerializer
 )
 from user.validators import (
-    check_password, 
+    validate_password, 
     validate_email,
 )
   
@@ -85,48 +85,10 @@ class UserView(APIView):
         return Response(context, status=status.HTTP_200_OK)
 
     def patch(self, request):
-        current_password = request.data.get("check_password")
-        user = User.objects.get(email=request.user)
-        new_password = request.data.get("new_password")
-        check_new_password = request.data.get("check_new_password")
-
-        # 빈칸 유뮤 확인
-        if new_password == "" or current_password == "" or check_new_password == "":
-            return Response(
-                {"message": " 빈칸을 입력해주세요!"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # 비밀번호 일치 확인
-        if new_password != check_new_password:
-            return Response(
-                {"message": "새로운 비밀번호가 일치하지 않습니다"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # 기존 비밀번호와 check_password가 일치할 경우 회원정보(닉네임, 비밀번호) 수정
-        if current_password and user.check_password(current_password):
-            # 새로운 비밀번호의 유효성 검사
-            try:
-                check_password(new_password)
-            except ValidationError:
-                return Response(
-                    {"message": "8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            serializer = UserUpdateSerializer(user, data=request.data, partial=True)
-            if serializer.is_valid(raise_exception=True):
-                # 비밀번호 변경한다면
-                if new_password:
-                    user.set_password(new_password)
-
-                user.save()
-                return Response({"message": "수정 완료!"}, status=status.HTTP_200_OK)
-            else:
-                return Response({serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(
-                {"message": "비밀번호가 일치하지 않습니다"}, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = UserUpdateSerializer(instance=request.user, data=request.data, context={"request":request}, partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+        return Response({"message":"수정 완료"}, status=status.HTTP_200_OK)
 
     # 회원 삭제
     def delete(self, request):
@@ -188,7 +150,7 @@ class ChangePassword(APIView):
 
         # 새 비밀번호 유효성 검사
         try:
-            check_password(check_password_input)
+            validate_password(check_password_input)
         except ValidationError:
             return Response(
                 {"message": "8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!"},

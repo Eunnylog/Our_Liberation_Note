@@ -14,7 +14,7 @@ from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
 # internal app
-from user.validators import check_password
+from user.validators import validate_password
 from user.tasks import send_email_task
 from user.manager import UserManager
 
@@ -29,7 +29,7 @@ STATUS_CHOICE = (
 
 class User(AbstractBaseUser):
     email = models.EmailField("이메일 주소", max_length=100, unique=True, error_messages={"unique":"이미 존재하는 이메일입니다."})
-    password = models.CharField("비밀 번호", max_length=128, validators=[check_password])
+    password = models.CharField("비밀 번호", max_length=128, validators=[validate_password])
     join_date = models.DateTimeField("가입일", auto_now_add=True)
     is_active = models.BooleanField("활성 여부", default=True)
     is_admin = models.BooleanField("어드민 여부", default=False)
