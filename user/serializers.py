@@ -28,6 +28,9 @@ class SignUpSerializer(serializers.ModelSerializer):
             
         email_code_obj = (CheckEmail.objects.filter(email=email).last())
         
+        if email_code_obj.is_verified == True:
+            raise serializers.ValidationError("이미 사용한 인증 코드입니다.")
+        
         if not email_code_obj:
             raise serializers.ValidationError("해당 메일로 보낸 인증 코드가 없습니다.")
               
@@ -43,7 +46,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         if password != repassword:
             raise serializers.ValidationError("비밀번호와 비밀번호 확인이 일치하지 않습니다.")
         
-        email_code_obj.update_is_verified()
+        # email_code_obj.update_is_verified()
 
         return data
 
@@ -57,6 +60,9 @@ class SignUpSerializer(serializers.ModelSerializer):
         user.set_password(validated_data["password"])
         user.save()
 
+        email_code_obj = CheckEmail.objects.filter(email=email).last()
+        email_code_obj.update_is_verified()
+        
         user_group_name = email.split("@")[0]
         new_user = User.objects.get(email=email)
         new_group = UserGroup(name=user_group_name, master=new_user)
@@ -117,8 +123,55 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         instance.set_password(validated_data["new_password"])
         instance.save()
         return instance
+    
 
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(write_only=True)
+    code = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    check_password = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = User
+        fields = ("email", "code", "new_password", "check_password")
+        
+    def validate(self, data):
+        # 가장 최근 인증코드 인스턴스
+        self.email_code_obj = (CheckEmail.objects.filter(email=data["email"]).last())
 
+        if self.email_code_obj.is_verified == True:
+            raise serializers.ValidationError("이미 사용한 인증 코드입니다.")
+        
+        if data["new_password"] != data["check_password"]:
+            raise serializers.ValidationError("비밀번호가 일치하지 않습니다.")
+        
+        try:
+            validate_password(data['new_password'])
+        except ValidationError:
+            raise serializers.ValidationError("8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!")
+        
+        # 이메일 일치하는지 확인
+        try:
+            self.user = User.objects.get(email=data["email"])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("이메일이 일치하지 않습니다.")
+        
+        if self.email_code_obj.code != data["code"]:
+            raise serializers.ValidationError("인증 코드가 일치하지 않습니다.")
+        
+        # 유효 기간 확인
+        if self.email_code_obj.expired_at < dt.now():
+            raise serializers.ValidationError("인증 코드의 유효기간이 지났습니다.")
+        
+        return data
+    
+    def update_user(self):
+        self.user.set_password(self.validated_data["new_password"])
+        self.user.save()
+        
+        self.email_code_obj.update_is_verified()
+        
+        
 class GroupSerializer(serializers.ModelSerializer):
     master = serializers.SerializerMethodField()
     members = serializers.SerializerMethodField()

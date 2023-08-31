@@ -34,7 +34,8 @@ from user.serializers import (
     LoginSerializer, 
     SignUpSerializer,
     UserUpdateSerializer, 
-    UserViewSerializer
+    UserViewSerializer,
+    ChangePasswordSerializer
 )
 from user.validators import (
     validate_password, 
@@ -101,69 +102,9 @@ class UserView(APIView):
 # 비밀번호 새로 만들기
 class ChangePassword(APIView):
     def post(self, request):
-        email = request.data.get("email")
-        code = request.data.get("code")
-        new_password = request.data.get("new_password")
-        check_password_input = request.data.get("check_password")
-
-        # 이메일 일치하는지 확인
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response(
-                {"message": "비밀번호 찾기를 위한 이메일이 일치하지 않습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        # 가장 최근인 인증코드 인스턴스
-        code_obj = (
-            CheckEmail.objects.filter(email=email).order_by("-created_at").first()
-        )
-
-        # 인증코드가 없는 경우
-        if code_obj is None:
-            return Response(
-                {"message": "해당 메일로 보낸 인증 코드가 없습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 유효 기간 확인
-        if code_obj.expired_at < dt.now():
-            # 인증 코드 유효 기간이 지난 경우
-            code_obj.delete()
-            return Response(
-                {"message": "인증 코드 유효 기간이 지났습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 인증 코드 일치하는지 확인
-        if code_obj.code != code:
-            return Response(
-                {"message": "이메일 확인 코드가 유효하지 않습니다."}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # 비밀번호와 비밀번호 확인 일치 여부 확인
-        if new_password != check_password_input:
-            return Response(
-                {"message": "비밀번호와 비밀번호 확인이 일치하지 않습니다."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 새 비밀번호 유효성 검사
-        try:
-            validate_password(check_password_input)
-        except ValidationError:
-            return Response(
-                {"message": "8자 이상의 영문 대/소문자, 숫자, 특수문자 조합이어야 합니다!"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # 비밀번호 업데이트
-        user.set_password(new_password)
-        user.save()
-
-        # 인증 상태 변경
-        code_obj.is_verified = True  
-        code_obj.save()
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.update_user()
         return Response({"message": "비밀번호 변경 완료!"}, status=status.HTTP_200_OK)
 
 
