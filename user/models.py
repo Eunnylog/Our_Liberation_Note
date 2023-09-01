@@ -58,7 +58,7 @@ class CheckEmail(models.Model):
     email = models.EmailField("인증용 이메일", max_length=100)
     code = models.CharField("확인용 코드", null=True, max_length=6, unique=True) 
     created_at = models.DateTimeField(auto_now_add=True)
-    expired_at = models.DateTimeField(null=True) # expired_at
+    expired_at = models.DateTimeField(null=True)
     is_verified = models.BooleanField("인증 유무", default=False)
 
     def __str__(self):

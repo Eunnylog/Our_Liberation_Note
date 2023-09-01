@@ -133,7 +133,7 @@ class GroupView(APIView):
             # 비활성 불러오기
             group = get_object_or_404(
                 UserGroup.objects.filter(
-                    id=id["id"], master_id=request.user.id, status__in=["1"]
+                    id=id, master_id=request.user.id, status__in=["1"]
                 )
             )
             # 본인이 생성한 그룹이 맞다면
@@ -190,7 +190,7 @@ class GroupDetailView(APIView):
             if serializer.is_valid():
                 new_name = serializer.validated_data.get("name")
                 # 그룹명 중복 확인
-                if (
+                if new_name != group.name and(
                     UserGroup.objects.filter(name=new_name)
                     .exclude(id=group_id)
                     .exists()

@@ -183,9 +183,8 @@ class GroupSerializer(serializers.ModelSerializer):
         return obj.master.email
 
     def get_members(self, obj):
-        return ", ".join(
-            obj.members.values_list("email", flat=True)
-        )  # values_list는 member 필드의 값을 리스트로 반환, flat을 쓰지 않으면 튜플로 반환
+        return obj.members.values_list("email", flat=True)
+
 
     def get_status(self, obj):
         if obj.status == "0":
@@ -223,17 +222,19 @@ class GroupCreateSerializer(serializers.ModelSerializer):
         if len(name) < 2 or len(name) > 15:
             raise ValidationError("제한 글자수는 2~15자 입니다!")
 
-        if UserGroup.objects.filter(name=name).exists():
-            raise serializers.ValidationError("이미 같은 이름의 그룹이 존재합니다.")
-        
         return data
 
     def create(self, validated_data):
         master = self.context["request"].user
         
         validated_data['master'] = master
-        group = super().create(validated_data)
         
+        name = validated_data.get("name")
+        
+        if UserGroup.objects.filter(name=name).exists():
+            raise serializers.ValidationError("이미 같은 이름의 그룹이 존재합니다.")
+        
+        group = super().create(validated_data)
         
         group.members.add(master)
         
