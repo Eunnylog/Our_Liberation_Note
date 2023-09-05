@@ -7,9 +7,6 @@ from celery.schedules import crontab
 # Absolute filesystem path to the top-level project folder:
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
-# settings.SECRET_KEY = 'django-insecure-s)=v9h_j$0^w#mhgp^3*^-0mivlqd-424o=u5txxidl0!=0@kr'
-
-
 # 설정되어있는 경우 환경변수 'DJANGO_SETTINGS_MODULE'를 가리키게 한다.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Our_Liberation_Note.settings")
 
@@ -26,3 +23,12 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 app.conf.broker_connection_retry_on_startup = True
+
+app.conf.beat_schedule = {
+    'clear_expired_tokens_every_hour': {
+        'task': 'user.tasks.clear_expired_tokens',
+        # 'schedule': 3600.0  # every hour
+        # 'schedule': 1.0  # every hour
+        'schedule': 10.0  # every hour
+    }
+}
