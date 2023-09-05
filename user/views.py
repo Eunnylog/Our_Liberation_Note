@@ -23,6 +23,7 @@ from rest_framework.views import APIView
 # rest_framework_simplejwt
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 
 # internal apps
 from diary.models import Comment, Note, PhotoPage, PlanPage, Stamp
@@ -59,6 +60,19 @@ class SignUpAPI(APIView):
 class SignInAPI(TokenObtainPairView):
     serializer_class = LoginSerializer
 
+
+class LogoutView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        try: 
+            refresh_token = request.data["refresh_token"] 
+            token = RefreshToken(refresh_token) 
+            token.blacklist() 
+
+            return Response({"message": "로그아웃 되었습니다!"}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception: 
+            return Response({"message": "로그아웃 처리 중 오류가 발생했습니다!"}, status=status.HTTP_400_BAD_REQUEST)
 
 class SendEmailAPI(APIView):
     def post(self, request):
