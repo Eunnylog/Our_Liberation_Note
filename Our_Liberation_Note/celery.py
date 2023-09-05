@@ -7,9 +7,6 @@ from celery.schedules import crontab
 # Absolute filesystem path to the top-level project folder:
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
-# settings.SECRET_KEY = 'django-insecure-s)=v9h_j$0^w#mhgp^3*^-0mivlqd-424o=u5txxidl0!=0@kr'
-
-
 # 설정되어있는 경우 환경변수 'DJANGO_SETTINGS_MODULE'를 가리키게 한다.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Our_Liberation_Note.settings")
 
