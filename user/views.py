@@ -1,29 +1,20 @@
 # python
 import os
-import random
-import string
-from datetime import datetime as dt
 import requests
-import time
-
 
 # django
-from django.core.exceptions import ObjectDoesNotExist
-from django.core.mail import EmailMessage
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
 # rest_framework
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.serializers import ValidationError
 from rest_framework.exceptions import APIException
 from rest_framework.views import APIView
 
 # rest_framework_simplejwt
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 
 # internal apps
 from diary.models import Comment, Note, PhotoPage, PlanPage, Stamp
@@ -32,6 +23,7 @@ from user.models import CheckEmail, User, UserGroup
 from user.serializers import (
     GroupCreateSerializer, 
     GroupSerializer,
+    GroupUpdateSerializer,
     LoginSerializer, 
     SignUpSerializer,
     UserUpdateSerializer, 
@@ -200,25 +192,9 @@ class GroupDetailView(APIView):
         )
         # 본인이 생성한 그룹이 맞다면
         if request.user.id == group.master_id:
-            serializer = GroupCreateSerializer(group, data=request.data, partial=True)
+            serializer = GroupUpdateSerializer(group, data=request.data, partial=True)
             if serializer.is_valid():
-                new_name = serializer.validated_data.get("name")
-                # 그룹명 중복 확인
-                if new_name != group.name and(
-                    UserGroup.objects.filter(name=new_name)
-                    .exclude(id=group_id)
-                    .exists()
-                ):
-                    error_message = {"message": "같은 이름의 그룹이 이미 존재합니다."}
-                    return Response(
-                        error_message,
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                # 수정하면서 그룹장을 request.user로 설정
-                group = serializer.save(master_id=request.user.id)
-                # master를 멤버로 추가하기
-                group.members.add(request.user)
+                serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

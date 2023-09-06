@@ -239,6 +239,49 @@ class GroupCreateSerializer(serializers.ModelSerializer):
         group.members.add(master)
         
         return group
+    
+
+class GroupUpdateSerializer(serializers.ModelSerializer):
+    members = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), many=True)
+    
+    class Meta:
+        model = UserGroup
+        fields = ("name", "members")
+        read_only_fields = ("master",)
+        
+    def validate(self, data):
+        name = data.get("name")
+        
+        if name:
+            if check_words(data["name"]):
+                raise ValidationError("비속어 사용이 불가합니다!")
+            
+            if len(name) < 2 or len(name) > 15:
+                raise ValidationError("제한 글자수는 2~15자 입니다!")
+
+        return data
+        
+    def validate_name(self, name) :
+        if name and self.instance.name != name and UserGroup.objects.filter(name=name).exclude(id=self.instance.id).exists():
+            raise ValidationError("같은 이름의 그룹이 이미 존재합니다.")
+        
+        return name
+    
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get("name", instance.name)
+        
+        members = validated_data.get('members')
+        
+        if members is not None:
+            instance.members.clear()
+            
+            for user in members:
+                instance.members.add(user)
+        
+        instance.members.add(instance.master)
+        instance.save()
+        
+        return instance
 
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
