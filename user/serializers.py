@@ -219,6 +219,9 @@ class GroupCreateSerializer(serializers.ModelSerializer):
 
         name = data["name"]
         
+        if name is None:
+            raise ValidationError("그룹명을 입력해주세요!")
+        
         if len(name) < 2 or len(name) > 15:
             raise ValidationError("제한 글자수는 2~15자 입니다!")
 
