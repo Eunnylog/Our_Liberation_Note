@@ -9,6 +9,6 @@ def send_email_task(user_email, subject, body):
     email.send()
     
     
-@shared_task #(name='clear_expired_tokens')
+@shared_task
 def clear_expired_tokens():
     call_command('clear_expired_tokens')
