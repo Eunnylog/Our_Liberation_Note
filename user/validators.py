@@ -1,6 +1,6 @@
 import re
-
 from rest_framework import serializers
+
 
 def validate_password(password):
     password_regex = (r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&^])[A-Za-z\d$@$!%*#?&^]{8,}$")
