@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 class Command(BaseCommand):
-    help = '모든 만료된 아웃스탠딩 토큰과 30일 이상 된 블랙리스트 토큰을 삭제합니다.'
+    help = '만료된 모든 아웃스탠딩과 블랙리스트 토큰을 삭제합니다.'
 
     def handle(self, *args, **kwargs):
         OutstandingToken.objects.filter(expires_at__lt=timezone.now()).delete()

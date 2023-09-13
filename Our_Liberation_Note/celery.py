@@ -27,8 +27,6 @@ app.conf.broker_connection_retry_on_startup = True
 app.conf.beat_schedule = {
     'clear_expired_tokens_every_hour': {
         'task': 'user.tasks.clear_expired_tokens',
-        # 'schedule': 3600.0  # every hour
-        # 'schedule': 1.0  # every hour
-        'schedule': 10.0  # every hour
+        'schedule': 3600.0
     }
 }
