@@ -79,6 +79,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "Our_Liberation_Note.wsgi.application"
 GUNICORN_TIMEOUT = 300
 
+CORS_ALLOW_ALL_ORIGINS = True
 
 DATABASES = mysettings.DATABASES
 
@@ -114,7 +115,7 @@ USE_TZ = False  # False 로 설정해야 DB에 변경 된 TIME_ZONE 이 반영 �
 
 
 STATIC_URL = "static/"
-
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

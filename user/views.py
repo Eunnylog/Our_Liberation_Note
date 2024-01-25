@@ -46,6 +46,7 @@ class SignUpAPI(APIView):
                 "user": serializer.data,
             }
             return Response(context, status=status.HTTP_201_CREATED)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
