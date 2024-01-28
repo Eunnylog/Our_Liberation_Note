@@ -9,10 +9,8 @@ import mysettings
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DEBUG=(bool, True))
-
-environ.Env.read_env(
-    env_file=os.path.join(BASE_DIR, '.env')
-)
+env_file = os.path.join(BASE_DIR, '.env')
+env.read_env(env_file)
 
 SECRET_KEY = env("SECRET_KEY")
 
@@ -83,11 +81,14 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 DATABASES = mysettings.DATABASES
 
-# 이미지 삽입
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760
-MEDIA_URL = "/media/"
 
+# 이미지 삽입
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/'
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760
+
+STATIC_ROOT = BASE_DIR / "static"
+STATIC_URL = '/static/'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -114,8 +115,6 @@ USE_I18N = True
 USE_TZ = False  # False 로 설정해야 DB에 변경 된 TIME_ZONE 이 반영 됨
 
 
-STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

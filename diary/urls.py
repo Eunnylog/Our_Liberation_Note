@@ -1,8 +1,7 @@
-from django.conf.urls.static import static
 from django.urls import path
 
 from diary import views
-from Our_Liberation_Note import settings
+
 
 urlpatterns = [
     # 노트 생성, 삭제
@@ -60,5 +59,3 @@ urlpatterns = [
     # 계획표 전송
     path("email/<int:note_id>", views.EmailView.as_view(), name="email"),
 ]
-
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
