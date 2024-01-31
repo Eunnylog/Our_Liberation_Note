@@ -205,7 +205,7 @@ class GroupDetailView(APIView):
 
 
 # 소셜 로그인
-URI = "https://liberation-note.com"
+URI = "https://liberationnote.shop"
 
 
 # OAuth 인증 url
