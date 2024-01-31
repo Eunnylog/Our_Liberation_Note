@@ -67,7 +67,7 @@ class PlanPage(models.Model):
 # 제건
 class PhotoPage(models.Model):
     diary = models.ForeignKey("Note", on_delete=models.CASCADE)  # 소속된 앨범 객체
-    image = models.ImageField(upload_to="media/")
+    image = models.ImageField(upload_to="%y/%m")
     name = models.CharField(max_length=50)
     title = models.CharField(max_length=100)
     location = models.CharField(max_length=100, null=True, blank=True)

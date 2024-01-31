@@ -46,6 +46,7 @@ class SignUpAPI(APIView):
                 "user": serializer.data,
             }
             return Response(context, status=status.HTTP_201_CREATED)
+        print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -204,7 +205,7 @@ class GroupDetailView(APIView):
 
 
 # 소셜 로그인
-URI = "https://liberation-note.com"
+URI = "https://liberationnote.shop"
 
 
 # OAuth 인증 url
