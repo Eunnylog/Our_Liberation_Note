@@ -1,6 +1,7 @@
 # python
 import os
 import requests
+from django.conf import settings
 
 # django
 from django.db.models import Q
@@ -204,9 +205,19 @@ class GroupDetailView(APIView):
             return Response({"message": "권한이 없습니다."}, status=status.HTTP_403_FORBIDDEN)
 
 
+# 카카오
+KAKAO_REST_API_KEY = settings.KAKAO_REST_API_KEY
+# 구글
+SOCIAL_AUTH_GOOGLE_CLIENT_ID = settings.SOCIAL_AUTH_GOOGLE_CLIENT_ID
+SOCIAL_AUTH_GOOGLE_SECRET = settings.SOCIAL_AUTH_GOOGLE_SECRET
+# 네이버
+SOCIAL_AUTH_NAVER_CLIENT_ID = settings.SOCIAL_AUTH_NAVER_CLIENT_ID
+SOCIAL_AUTH_NAVER_SECRET = settings.SOCIAL_AUTH_NAVER_SECRET
+
+STATE = settings.STATE
+
 # 소셜 로그인
 URI = "https://liberationnote.shop"
-
 
 # OAuth 인증 url
 class SocialUrlView(APIView):
@@ -223,7 +234,7 @@ class SocialUrlView(APIView):
         elif social == "kakao":
             url = (
                 "https://kauth.kakao.com/oauth/authorize?client_id="
-                + os.environ.get("KAKAO_REST_API_KEY")
+                + KAKAO_REST_API_KEY
                 + "&redirect_uri="
                 + URI
                 + "&response_type=code&prompt=login"
@@ -233,16 +244,16 @@ class SocialUrlView(APIView):
         elif social == "naver":
             url = (
                 "https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id="
-                + os.environ.get("SOCIAL_AUTH_NAVER_CLIENT_ID")
+                + SOCIAL_AUTH_NAVER_CLIENT_ID
                 + "&redirect_uri="
                 + URI
                 + "&state="
-                + os.environ.get("STATE")
+                + STATE
             )
             return Response({"url": url}, status=status.HTTP_200_OK)
         # 구글
         elif social == "google":
-            client_id = os.environ.get("SOCIAL_AUTH_GOOGLE_CLIENT_ID")
+            client_id = SOCIAL_AUTH_GOOGLE_CLIENT_ID
             redirect_uri = URI
 
             url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=email%20profile"
@@ -261,7 +272,7 @@ class KakaoLoginView(APIView):
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             data={
                 "grant_type": "authorization_code",
-                "client_id": os.environ.get("KAKAO_REST_API_KEY"),
+                "client_id": KAKAO_REST_API_KEY,
                 "redirect_uri": URI,
                 "code": code,  # 인증 후 얻은 코드
             },
@@ -331,8 +342,8 @@ class KakaoLoginView(APIView):
 class NaverLoginView(APIView):
     def post(self, request):
         code = request.data.get("code")
-        client_id = os.environ.get("SOCIAL_AUTH_NAVER_CLIENT_ID")
-        client_secret = os.environ.get("SOCIAL_AUTH_NAVER_SECRET")
+        client_id = SOCIAL_AUTH_NAVER_CLIENT_ID
+        client_secret = SOCIAL_AUTH_NAVER_SECRET
         redirect_uri = URI
 
         # 네이버 API로 액세스 토큰 요청
@@ -415,8 +426,8 @@ class NaverLoginView(APIView):
 class GoogleLoginView(APIView):
     def post(self, request):
         code = request.data.get("code")
-        client_id = os.environ.get("SOCIAL_AUTH_GOOGLE_CLIENT_ID")
-        client_secret = os.environ.get("SOCIAL_AUTH_GOOGLE_SECRET")
+        client_id = SOCIAL_AUTH_GOOGLE_CLIENT_ID
+        client_secret = SOCIAL_AUTH_GOOGLE_SECRET
         redirect_uri = URI
 
         # 구글 API로 액세스 토큰 요청
