@@ -6,6 +6,9 @@ from bardapi import Bard
 from bs4 import BeautifulSoup as bs
 from haversine import haversine
 
+from django.conf import settings
+
+openai.api_key = settings.OPEN_AI
 
 # 주어진 경로의 총 거리를 계산하는 함수.
 # 경로는 좌표 목록으로 주어지며, 각 좌표는 경도와 위도의 한쌍
@@ -143,7 +146,7 @@ def crawling_data(answer_li):
         soup = bs(html_text, "html.parser")
 
         # 첫 번째 링크
-        link = soup.select_one(".api_txt_lines.total_tit")
+        link = soup.select_one(".title_link")
 
         # href 속성을 가져와 data_li에 추가
         if link:
