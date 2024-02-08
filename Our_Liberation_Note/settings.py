@@ -77,7 +77,15 @@ TEMPLATES = [
 WSGI_APPLICATION = "Our_Liberation_Note.wsgi.application"
 GUNICORN_TIMEOUT = 300
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "https://liberationnote.shop",
+    "http://liberationnote.shop",
+    "http://127.0.0.1:5500",
+]
+# CORS_ALLOW_HEADERS = [
+#     "authorization-token",
+# ]
 
 DATABASES = mysettings.DATABASES
 
@@ -123,7 +131,7 @@ JWT_AUTH_COOKIE = "jwt_token"
 JTW_AUTH_REFRESH_COOKIE = "jwt_refresh_token"
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=3),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
@@ -189,3 +197,7 @@ SOCIAL_AUTH_NAVER_CLIENT_ID=env("SOCIAL_AUTH_NAVER_CLIENT_ID")
 SOCIAL_AUTH_NAVER_SECRET=env("SOCIAL_AUTH_NAVER_SECRET")
 
 STATE=env("STATE")
+
+TOSS_SECRET_KEY=env("TOSS_SECRET_KEY")
+
+OPEN_AI=env("OPEN_AI")

@@ -4,6 +4,7 @@ import os
 
 import jwt
 import requests
+from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import render
 from rest_framework import status
@@ -41,8 +42,9 @@ class Success(APIView):
         print(access_token, orderId, amount, paymentKey, note_id)
 
         url = "https://api.tosspayments.com/v1/payments/confirm"
-        secret_key = os.environ.get("TOSS_SECRET_KEY")
-        django_secret_key = os.environ.get("SECRET_KEY")
+        secret_key = settings.TOSS_SECRET_KEY
+        django_secret_key = settings.SECRET_KEY
+        print(secret_key, django_secret_key)
         try:
             token_data = jwt.decode(
                 access_token, key=django_secret_key, algorithms=["HS256"]
